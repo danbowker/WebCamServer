@@ -1,0 +1,6 @@
+@WebCam_HostAddress = http://localhost:7251
+
+GET {{WebCam_HostAddress}}/webcam/
+Accept: application/json
+
+###
