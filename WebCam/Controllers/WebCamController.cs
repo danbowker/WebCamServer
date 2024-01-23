@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Win32;
+using System.Runtime.Serialization;
 
 namespace WebCam.Controllers
 {
@@ -8,16 +10,36 @@ namespace WebCam.Controllers
     public class WebCamController : ControllerBase
     {
         private readonly ILogger<WebCamController> _logger;
+        private readonly IMemoryCache _cache;
 
-        public WebCamController(ILogger<WebCamController> logger)
+        public WebCamController(ILogger<WebCamController> logger, IMemoryCache cache)
         {
             _logger = logger;
+            _cache = cache;
         }
 
         [HttpGet(Name = "GetWebCam")]
         public bool Get()
         {
-            return IsWebCamInUse();
+            _cache.TryGetValue("CamStatus", out CamStatus status);
+            switch (status)
+            {
+                case CamStatus.Auto:
+                    return IsWebCamInUse();
+                case CamStatus.On:
+                    return true;
+                case CamStatus.Off:
+                    return false;
+                default:
+                    return false;
+            }
+        }
+
+        [HttpPost(Name = "PostWebCam")]
+        public void Post(CamStatus camStatus)
+        {
+            // Save the current status in application state
+            _cache.Set("CamStatus", camStatus);
         }
 
         private static bool IsWebCamInUse()
@@ -42,5 +64,15 @@ namespace WebCam.Controllers
 
             return false;
         }
+    }
+    
+    public enum CamStatus
+    {
+        [EnumMember(Value = "Auto")]
+        Auto,
+        [EnumMember(Value = "On")]
+        On,
+        [EnumMember(Value = "Off")]
+        Off
     }
 }
