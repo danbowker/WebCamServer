@@ -9,12 +9,10 @@ namespace WebCam.Controllers
     [Route("[controller]")]
     public class WebCamController : ControllerBase
     {
-        private readonly ILogger<WebCamController> _logger;
         private readonly IMemoryCache _cache;
 
-        public WebCamController(ILogger<WebCamController> logger, IMemoryCache cache)
+        public WebCamController(IMemoryCache cache)
         {
-            _logger = logger;
             _cache = cache;
         }
 
@@ -44,23 +42,26 @@ namespace WebCam.Controllers
 
         private static bool IsWebCamInUse()
         {
-            using (var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam\NonPackaged"))
-            {
+            return CheckWebCamSubKeys(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam\NonPackaged") 
+                   || CheckWebCamSubKeys(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam");
+        }
+
+        private static bool CheckWebCamSubKeys(string keyName)
+        {
+            using var key = Registry.CurrentUser.OpenSubKey(keyName);
+            if (key != null)
                 foreach (var subKeyName in key.GetSubKeyNames())
                 {
-                    using (var subKey = key.OpenSubKey(subKeyName))
+                    using var subKey = key.OpenSubKey(subKeyName);
+                    if (subKey != null && subKey.GetValueNames().Contains("LastUsedTimeStop"))
                     {
-                        if (subKey.GetValueNames().Contains("LastUsedTimeStop"))
+                        var endTime = (long)(subKey.GetValue("LastUsedTimeStop") ?? -1);
+                        if (endTime <= 0)
                         {
-                            var endTime = subKey.GetValue("LastUsedTimeStop") is long ? (long)subKey.GetValue("LastUsedTimeStop") : -1;
-                            if (endTime <= 0)
-                            {
-                                return true;
-                            }
+                            return true;
                         }
                     }
                 }
-            }
 
             return false;
         }
