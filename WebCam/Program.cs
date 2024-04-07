@@ -9,6 +9,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddMemoryCache();
+builder.Services.AddWindowsService();
 
 // Configure json options to use enum names instead of values
 builder.Services.AddControllers().AddJsonOptions(options =>
