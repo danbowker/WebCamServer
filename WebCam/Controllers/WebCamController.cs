@@ -9,17 +9,17 @@ namespace WebCam.Controllers
     [Route("[controller]")]
     public class WebCamController : ControllerBase
     {
-        private readonly IMemoryCache _cache;
+        private readonly IMemoryCache cache;
 
         public WebCamController(IMemoryCache cache)
         {
-            _cache = cache;
+            this.cache = cache;
         }
 
         [HttpGet(Name = "GetWebCam")]
         public bool Get()
         {
-            _cache.TryGetValue("CamStatus", out CamStatus status);
+            cache.TryGetValue("CamStatus", out CamStatus status);
             switch (status)
             {
                 case CamStatus.Auto:
@@ -33,20 +33,31 @@ namespace WebCam.Controllers
             }
         }
 
+        [HttpGet(Name = "GetClientApp")]
+        public string? GetClientApp()
+        {
+            return GetAppUsingWebCam();
+        }
+
         [HttpPost(Name = "PostWebCam")]
         public void Post(CamStatus camStatus)
         {
             // Save the current status in application state
-            _cache.Set("CamStatus", camStatus);
+            cache.Set("CamStatus", camStatus);
         }
 
         private static bool IsWebCamInUse()
         {
-            return CheckWebCamSubKeys(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam\NonPackaged") 
-                   || CheckWebCamSubKeys(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam");
+            return !string.IsNullOrEmpty(GetAppUsingWebCam());
         }
 
-        private static bool CheckWebCamSubKeys(string keyName)
+        private static string? GetAppUsingWebCam()
+        {
+            return GetAppUsingWebCam(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam\NonPackaged")
+                   ?? GetAppUsingWebCam(@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\webcam");
+        }
+
+        private static string? GetAppUsingWebCam(string keyName)
         {
             using var key = Registry.CurrentUser.OpenSubKey(keyName);
             if (key != null)
@@ -58,12 +69,12 @@ namespace WebCam.Controllers
                         var endTime = (long)(subKey.GetValue("LastUsedTimeStop") ?? -1);
                         if (endTime <= 0)
                         {
-                            return true;
+                            return subKeyName;
                         }
                     }
                 }
 
-            return false;
+            return null;
         }
     }
     
