@@ -33,7 +33,7 @@ namespace WebCam.Controllers
             }
         }
 
-        [HttpGet(Name = "GetClientApp")]
+        [HttpGet("ClientApp", Name = "GetClientApp")]
         public string? GetClientApp()
         {
             return GetAppUsingWebCam();
